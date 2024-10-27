@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration debug="false">
+    <statusListener class="ch.qos.logback.core.status.NopStatusListener" />
+    <include resource="com/dfl/logging/logback/default.xml" />
+
+    <logger name="org.mongodb" level="WARN" additivity="false">
+        <appender-ref ref="CONSOLE" />
+    </logger>
+
+    <logger name="akka.http" level="WARN" additivity="false">
+        <appender-ref ref="CONSOLE" />
+    </logger>
+
+    <root level="${APP_LOGGING_LEVEL:-INFO}">
+        <appender-ref ref="CONSOLE" />
+    </root>
+</configuration>

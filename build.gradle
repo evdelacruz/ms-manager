@@ -1,0 +1,57 @@
+import com.github.jengelman.gradle.plugins.shadow.transformers.AppendingTransformer
+
+plugins {
+    id 'scala'
+    id "com.github.johnrengelman.shadow" version "7.1.2"
+}
+
+group 'com.dfl.contest'
+
+repositories {
+    mavenCentral()
+}
+
+def versions = [
+				SCALA_VERSION = '2.13'
+        AKKA_VERSION = '2.6.20'
+        ALPAKKA_VERSION = '3.0.4'
+]
+
+dependencies {
+    implementation platform("com.typesafe.akka:akka-bom_${SCALA_VERSION}:${AKKA_VERSION}")
+		implementation platform("com.typesafe.akka:akka-http-bom_${SCALA_VERSION}:10.2.10")
+    implementation "com.typesafe.akka:akka-actor_${SCALA_VERSION}"
+    implementation "com.typesafe.akka:akka-slf4j_${SCALA_VERSION}:${AKKA_VERSION}"
+    implementation "com.typesafe.akka:akka-http_${SCALA_VERSION}:${AKKA_VERSION}"
+    implementation "com.typesafe.akka:akka-http-spray-json_${SCALA_VERSION}:${AKKA_VERSION}"
+		implementation "com.typesafe.akka:akka-http-caching_${SCALA_VERSION}:${AKKA_VERSION}"
+    implementation "io.spray:spray-json_${SCALA_VERSION}:1.3.6"
+    implementation 'com.auth0:java-jwt:4.4.0'
+}
+
+jar {
+    manifest {
+        attributes 'Implementation-Vendor'  : 'evdelacruz',
+                   'Implementation-Unit'    : 'dofleini',
+                   'Implementation-Version' : '0.1.0-SNAPSHOT',
+                   'Implementation-Title'   : 'ms-exchanger',
+                   'Specification-Vendor'   : 'DFL Contest 2024',
+                   'Specification-Title'    : 'Transactions Manager',
+                   'Main-Class'             : 'com.dfl.contest.exchanger.Main'
+    }
+    archiveBaseName = 'ms-exchanger'
+}
+
+shadowJar {
+    transform(AppendingTransformer) {
+        resource = 'reference.conf'
+    }
+    transform(AppendingTransformer) {
+        resource = 'version.conf'
+    }
+    with jar
+}
+
+task stage {
+    dependsOn shadowJar
+}
