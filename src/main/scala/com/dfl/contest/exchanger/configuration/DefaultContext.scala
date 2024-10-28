@@ -19,7 +19,7 @@ object DefaultContext {
   private val Settings: CorsSettings = CorsSettings(GlobalConfig)
 
   private val Routes: Route = cors(Settings) {
-    api {
+    pathPrefix(Name) {
       path("api", HealthcheckRoutes)
     }
   }
@@ -28,10 +28,6 @@ object DefaultContext {
    * Retrieves the application that manages all the pipeline orchestrations.
    */
   def getRunnable: Runnable = Runnable(Routes)
-
-  def api(route: Route): Route = pathPrefix(Name) {
-    route
-  }
 }
 
 /**

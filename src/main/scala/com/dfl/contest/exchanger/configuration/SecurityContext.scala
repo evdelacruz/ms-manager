@@ -34,7 +34,7 @@ object SecurityContext {
   def routesc(handle: Context => Route): Route = secure(Realm, authenticate) { authentication =>
     extractRequest { req =>
       parameterSeq { params =>
-        handle(Context(authentication, params ++: req.headers.map(header => (header.name(), header.value()))))
+        handle(Context(authentication, params ++: req.headers.map(header => (header.name(), header.value())), now))
       }
     }
   }
