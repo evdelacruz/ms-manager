@@ -1,11 +1,14 @@
 package com.dfl.contest.exchanger.configuration
 
+import akka.actor.Cancellable
 import akka.http.scaladsl.server.Directives.pathPrefix
 import akka.http.scaladsl.server.Route
 import ch.megard.akka.http.cors.scaladsl.CorsDirectives.cors
 import ch.megard.akka.http.cors.scaladsl.settings.CorsSettings
 import com.dfl.contest.exchanger.dist.rest.HealthcheckRoute.{Routes => HealthcheckRoutes}
-import com.dfl.seed.akka.base.{GlobalConfig, Name}
+import com.dfl.contest.exchanger.dist.schedule.CurrencyScheduler
+import com.dfl.contest.exchanger.service.infrastructure.CurrenciesSupervisor.init
+import com.dfl.seed.akka.base.{GlobalConfig, Name, getActor}
 import com.dfl.seed.akka.http.Routing.{wrap => path}
 import com.dfl.seed.akka.http.startServer
 
@@ -17,6 +20,7 @@ import com.dfl.seed.akka.http.startServer
  */
 object DefaultContext {
   private val Settings: CorsSettings = CorsSettings(GlobalConfig)
+  private[exchanger] val CurrenciesSupervisor = getActor("currencies-supervisor", init())
 
   private val Routes: Route = cors(Settings) {
     pathPrefix(Name) {
@@ -24,10 +28,12 @@ object DefaultContext {
     }
   }
 
+  private val Tasks = Seq(CurrencyScheduler.schedule)
+
   /**
    * Retrieves the application that manages all the pipeline orchestrations.
    */
-  def getRunnable: Runnable = Runnable(Routes)
+  def getRunnable: Runnable = Runnable(Routes, Tasks)
 }
 
 /**
@@ -36,7 +42,7 @@ object DefaultContext {
  * @author evdelacruz
  * @since 0.1.0
  */
-class Runnable(routes: Route) {
+class Runnable(routes: Route, tasks: Seq[Cancellable]) {
 
   /**
    * Launches all the routes running logic.
@@ -49,5 +55,5 @@ class Runnable(routes: Route) {
 }
 
 object Runnable {
-  def apply(routes: Route): Runnable = new Runnable(routes)
+  def apply(routes: Route, tasks: Seq[Cancellable]): Runnable = new Runnable(routes, tasks)
 }

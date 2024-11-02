@@ -25,6 +25,12 @@ package object service {
 
   case class UnexpectedBehaviorException(message: String) extends Exception(message)
 
+  case class UnsupportedCurrencyException(message: String) extends Exception(message)
+  object UnsupportedCurrencyException {
+    def apply(currency: String): UnsupportedCurrencyException =
+      new UnsupportedCurrencyException(s"The currency '$currency' is not supported. Please use one of the supported currencies: .")
+  }
+
   //</editor-fold>
 
   //<editor-fold desc="Functions">
