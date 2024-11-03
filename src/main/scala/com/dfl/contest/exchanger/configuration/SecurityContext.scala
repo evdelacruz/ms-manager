@@ -42,7 +42,7 @@ object SecurityContext {
   //<editor-fold desc="Support Functions">
 
   private def getAuthentication(token: DecodedJWT): Try[Authentication] = Try {
-    val userId = token.getClaim("user").asString()
+    val userId = token.getClaim("id").asString()
     Authentication(userId, token.getToken)
   }
 

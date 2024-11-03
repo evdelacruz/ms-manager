@@ -19,15 +19,15 @@ object ExchangeRates {
 
   //<editor-fold desc="Functions">
 
-  implicit private[hubspot] def getRequest(path: String): HttpRequest = Get().withUri(s"$RaterUri/$path")
+  implicit private[infrastructure] def getRequest(path: String): HttpRequest = Get().withUri(s"$RaterUri/$path")
 
-  implicit private[hubspot] def parseCurrenciesResponse: HttpResponse => Source[Try[Seq[String]], NotUsed] = getResponse((status, body) => status match {
+  implicit private[infrastructure] def parseCurrenciesResponse: HttpResponse => Source[Try[Seq[String]], NotUsed] = getResponse((status, body) => status match {
     case res if res.isSuccess() => Try(body.parseJson.convertTo[Seq[String]])
     case BadRequest => Try(body.parseJson.convertTo[Seq[String]]).recoverWith(ex => Failure(UnexpectedBehaviorException(s"Error '${ex.getMessage}' when trying to parse '$body'")))
     case _ => Failure(UnexpectedBehaviorException(s"$status => $body"))
   })
 
-  implicit private[hubspot] def parseLatestResponse: HttpResponse => Source[Try[ExchangeRate], NotUsed] = getResponse((status, body) => status match {
+  implicit private[infrastructure] def parseLatestResponse: HttpResponse => Source[Try[ExchangeRate], NotUsed] = getResponse((status, body) => status match {
     case res if res.isSuccess() => Try(body.parseJson.convertTo[ExchangeRate])
     case BadRequest => Try(body.parseJson.convertTo[ExchangeRate]).recoverWith(ex => Failure(UnexpectedBehaviorException(s"Error '${ex.getMessage}' when trying to parse '$body'")))
     case _ => Failure(UnexpectedBehaviorException(s"$status => $body"))
