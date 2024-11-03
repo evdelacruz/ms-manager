@@ -1,9 +1,8 @@
-package com.dfl.contest.exchanger.service.infrastructure
+package com.dfl.contest.exchanger.service.infrastructure.datasource
 
 import akka.actor.{Actor, ActorLogging, Props}
 import com.dfl.contest.exchanger.service.infrastructure.datasource.domain.Currencies.{SupportedCurrenciesRequest, SupportedCurrenciesUpdate}
 
-import java.time.Instant
 import scala.util.{Failure, Success}
 
 class CurrenciesSupervisor extends Actor with ActorLogging {
@@ -12,7 +11,7 @@ class CurrenciesSupervisor extends Actor with ActorLogging {
   override def receive: Receive = handle(Seq())
 
   private def handle(currencies: Seq[(String, Boolean)]): Receive = {
-    case SupportedCurrenciesRequest() => sender() ! Success(currencies.find(_._2).map(_._1))
+    case SupportedCurrenciesRequest() => sender() ! Success(currencies.filter(_._2).map(_._1))
     case SupportedCurrenciesUpdate(incomingCurrencies) =>
       val updatedCurrencies = incomingCurrencies.map((_, true)).concat(currencies.filterNot(tuple => incomingCurrencies.contains(tuple._1)).map(_.copy(_2 = false)))
       become(handle(updatedCurrencies))

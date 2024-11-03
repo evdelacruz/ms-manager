@@ -1,13 +1,11 @@
 package com.dfl.contest.exchanger.dist.schedule
 
-import akka.NotUsed
 import akka.actor.Cancellable
-import akka.stream.scaladsl.{Sink, Source}
+import akka.stream.scaladsl.Sink
 import akka.stream.scaladsl.Source.tick
 import com.dfl.contest.exchanger.facade.CurrenciesFacade.refreshCurrencies
 import com.dfl.seed.akka.stream.base.Materializer
 
-import java.time.Instant
 import java.time.Instant.now
 
 object CurrencyScheduler {
@@ -21,5 +19,4 @@ object CurrencyScheduler {
       .to(Sink.ignore)
       .run()
   }
-
 }

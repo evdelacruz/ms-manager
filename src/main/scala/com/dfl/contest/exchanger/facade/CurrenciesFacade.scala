@@ -10,6 +10,8 @@ import com.dfl.contest.exchanger.service.infrastructure.datasource.domain.Exchan
 import com.dfl.contest.exchanger.service.infrastructure.datasource.domain.Exchanges.RatesUpdate
 import com.dfl.contest.exchanger.service.infrastructure.datasource.to.ExchangeRates.CurrenciesTO
 import com.dfl.seed.akka.base.Timeout
+import com.dfl.seed.akka.base.error.Error
+import com.dfl.seed.akka.base.error.ErrorCode._
 import com.dfl.seed.akka.stream.base.facade.{Result, perform}
 import com.dfl.seed.akka.stream.base.Types.SafeSource.single
 import com.dfl.seed.akka.stream.base.Types.{SafeFlow, SafeSource}
@@ -23,8 +25,11 @@ object CurrenciesFacade {
 
   def getSupportedCurrencies: Future[Result[CurrenciesTO]] = perform {
     single(SupportedCurrenciesRequest())
-      .ask[Seq[String]](CurrenciesSupervisor)
-      .map(currencies => Right(Some(CurrenciesTO(currencies))))
+      .ask[Try[Seq[String]]](CurrenciesSupervisor)
+      .map {
+        case Failure(_) => Left(Error(INTERNAL_ERROR, "Error when trying to get the supported currencies"))
+        case Success(currencies) => Right(Some(CurrenciesTO(currencies)))
+      }
   }
 
   def refreshCurrencies: Flow[Instant, Try[(String, Boolean)], NotUsed] = {
@@ -43,6 +48,8 @@ object CurrenciesFacade {
       }
   }
 
+  //<editor-fold desc="Support Functions">
+
   private def getCurrencies: Source[Try[Seq[(String, Boolean)]], NotUsed] = loadCurrencies
     .flatMapConcat {
       case Failure(ex) => single(Failure(ex))
@@ -53,4 +60,6 @@ object CurrenciesFacade {
     case (currency, true) => loadRates(currency)
     case (currency, false) => single(Success(ExchangeRate(base = currency, timestamp = now, rates = Map())))
   }
+
+  //</editor-fold>
 }

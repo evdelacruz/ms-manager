@@ -4,7 +4,7 @@ import akka.NotUsed
 import akka.actor.ActorRef
 import akka.stream.scaladsl.Source
 import com.dfl.contest.exchanger.service._
-import com.dfl.contest.exchanger.service.infrastructure.CurrencyExchanger.init
+import com.dfl.contest.exchanger.service.infrastructure.datasource.CurrencyExchanger.init
 import com.dfl.seed.akka.base.{Name, System, Timeout, searchActor}
 import com.dfl.seed.akka.stream.base.Types.SafeSource.future
 

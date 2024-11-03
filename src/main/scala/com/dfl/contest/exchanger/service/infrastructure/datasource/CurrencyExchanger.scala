@@ -1,4 +1,4 @@
-package com.dfl.contest.exchanger.service.infrastructure
+package com.dfl.contest.exchanger.service.infrastructure.datasource
 
 import akka.actor.{Actor, ActorLogging, Props}
 import com.dfl.contest.exchanger.service.UnsupportedCurrencyException
