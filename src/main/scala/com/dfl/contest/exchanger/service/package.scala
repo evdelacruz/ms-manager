@@ -68,7 +68,7 @@ package object service {
 
   implicit private[service] def getBson(json: String): Bson = Document(json)
 
-  def mapTrial[I, O](f: I => Source[Try[O], NotUsed]): Try[I] => Source[Try[O], NotUsed] = {
+  def trial[I, O](f: I => Source[Try[O], NotUsed]): Try[I] => Source[Try[O], NotUsed] = {
     case Failure(ex) => single(Failure(ex))
     case Success(input) => f(input)
   }
