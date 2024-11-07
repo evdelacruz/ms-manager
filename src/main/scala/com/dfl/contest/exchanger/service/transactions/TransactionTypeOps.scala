@@ -9,7 +9,6 @@ import com.dfl.contest.exchanger.service.transactions.datasource.to.TransactionT
 import com.dfl.seed.akka.base.error.ErrorCode._
 import com.dfl.seed.akka.stream.base.Types.SafeFlow
 import com.dfl.seed.akka.stream.base.Types.SafeSource.single
-import com.dfl.seed.akka.stream.base.facade.PagedList
 import com.dfl.seed.akka.stream.mongodb.MongoOps._
 import org.mongodb.scala.bson.ObjectId
 import org.mongodb.scala.model.Filters.{and, equal, exists, ne => notEqual}
@@ -26,28 +25,24 @@ object TransactionTypeOps {
 
   def add(implicit logger: String = s"$Key#add"): Flow[TransactionTypeTO, Try[TransactionType], NotUsed] = SafeFlow[TransactionTypeTO]
     .flatMapConcat(validate)
-    .flatMapConcat(mapTrial(single(_).via(insertOne).map(Success(_)).recover(Failure(_))))
+    .flatMapConcat(trial(single(_).via(insertOne).map(Success(_)).recover(Failure(_))))
 
   def update(implicit logger: String = s"$Key#update"): Flow[(String, TransactionTypeTO), Try[TransactionTypeTO], NotUsed] = SafeFlow[(String, TransactionTypeTO)]
-    .flatMapConcat(tuple => validate(tuple._2).flatMapConcat(mapTrial(single(tuple._1, _).map(getTransactionTypeUpdate).via(updateOne).map(_ => Success(tuple._2)))))
+    .flatMapConcat(tuple => validate(tuple._2).flatMapConcat(trial(single(tuple._1, _).map(getTransactionTypeUpdate).via(updateOne).map(_ => Success(tuple._2)))))
 
   def remove(implicit logger: String = s"$Key#remove"): Flow[String, Boolean, NotUsed] = SafeFlow[String]
     .map(id => equal("_id", new ObjectId(id)))
     .via(deleteOne)
     .map(_.getDeletedCount != 0)
 
-  def find(implicit logger: String = s"$Key#find"): Flow[String, Try[TransactionType], NotUsed]  = SafeFlow[String]
+  def load(implicit logger: String = s"$Key#find"): Flow[String, TransactionType, NotUsed]  = SafeFlow[String]
     .flatMapConcat(id => findOne(equal("_id", new ObjectId(id))))
-    .map(Success(_))
-    .orElse(single(Failure(ValidationException(INVALID_REFERENCE, "Entity not found"))))
 
-  def findAll(implicit logger: String = s"$Key#find-all"): Flow[TransactionTypeCriteria, PagedList[TransactionType], NotUsed] = SafeFlow[TransactionTypeCriteria]
+  def loadAll(implicit logger: String = s"$Key#find-all"): Flow[TransactionTypeCriteria, TransactionType, NotUsed] = SafeFlow[TransactionTypeCriteria]
     .flatMapConcat {
       case DynamicCriteria(_, page, size) => findMany(filter = exists("_id"), sort = ascending("createdAt"), batchSize = size, skip = page + size)
       case DefaultCriteria(page, size) => findMany(filter = exists("_id"), sort = ascending("createdAt"), batchSize = size, skip = page + size)
     }
-    .fold(Seq[TransactionType]())(_ :+ _)
-    .map(PagedList(_))
 
   //<editor-fold desc="Support Functions">
 
