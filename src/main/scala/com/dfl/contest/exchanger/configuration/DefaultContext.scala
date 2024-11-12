@@ -7,6 +7,7 @@ import ch.megard.akka.http.cors.scaladsl.CorsDirectives.cors
 import ch.megard.akka.http.cors.scaladsl.settings.CorsSettings
 import com.dfl.contest.exchanger.dist.rest.CurrencyRoute.{Routes => CurrencyRoutes}
 import com.dfl.contest.exchanger.dist.rest.HealthcheckRoute.{Routes => HealthcheckRoutes}
+import com.dfl.contest.exchanger.dist.rest.TransactionRoute.{Routes => TransactionRoutes}
 import com.dfl.contest.exchanger.dist.rest.TransactionTypeRoute.{Routes => TransactionTypeRoutes}
 import com.dfl.contest.exchanger.dist.schedule.CurrencyScheduler
 import com.dfl.seed.akka.base.{GlobalConfig, Name, getActor}
@@ -24,7 +25,7 @@ object DefaultContext {
 
   private val Routes: Route = cors(Settings) {
     pathPrefix(Name) {
-      path("api", HealthcheckRoutes, CurrencyRoutes, TransactionTypeRoutes)
+      path("api", HealthcheckRoutes, CurrencyRoutes, TransactionTypeRoutes, TransactionRoutes)
     }
   }
 
