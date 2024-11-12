@@ -9,11 +9,12 @@ import com.dfl.seed.akka.stream.base.Types.SafeSource.single
 
 import java.time.Instant
 import java.time.Instant.now
-import scala.util.{Failure, Success, Try}
+import scala.util.{Success, Try}
 
 object ExchangeRateOps {
+  private val Key = "service-infrastructure-exchangerateops"
 
-  def loadCurrencies: Source[Try[CurrenciesTO], NotUsed] = {
+  def loadSupportedCurrencies(implicit logger: String = s"$Key#load-currencies"): Source[Try[CurrenciesTO], NotUsed] = {
 //    single(Success( if (now.toEpochMilli % 2 == 0) CurrenciesTO(Seq("USD", "EUR")) else CurrenciesTO(Seq("CUP", "MLC")) ))
     import com.dfl.contest.exchanger.service.infrastructure.datasource.domain.ExchangeRates.{getRequest, parseCurrenciesResponse}
 
@@ -22,7 +23,7 @@ object ExchangeRateOps {
       .map(_.map(CurrenciesTO))
   }
 
-  def loadRates(currency: String): Source[Try[ExchangeRate], NotUsed] = {
+  def loadRates(currency: String)(implicit logger: String = s"$Key#load-rates"): Source[Try[ExchangeRate], NotUsed] = {
 //    currency match {
 //      case "USD" => single(Success(ExchangeRate(base = currency, timestamp = Instant.now, rates = Map("EUR" -> 1.00, "MLC" -> 1.00, "CUP" -> 1.00))))
 //      case "EUR" => single(Success(ExchangeRate(base = currency, timestamp = Instant.now, rates = Map("USD" -> 2.00, "MLC" -> 2.00, "CUP" -> 2.00))))

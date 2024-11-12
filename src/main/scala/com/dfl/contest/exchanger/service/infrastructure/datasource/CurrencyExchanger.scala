@@ -1,8 +1,9 @@
 package com.dfl.contest.exchanger.service.infrastructure.datasource
 
 import akka.actor.{Actor, ActorLogging, Props}
-import com.dfl.contest.exchanger.service.UnsupportedCurrencyException
 import com.dfl.contest.exchanger.service.infrastructure.datasource.domain.Exchanges.{RateRequest, RatesUpdate}
+import com.dfl.seed.akka.base.error.ErrorCode.INVALID_CURRENCY
+import com.dfl.seed.akka.base.error.RootException
 
 import scala.util.{Failure, Success}
 
@@ -14,7 +15,7 @@ class CurrencyExchanger(id: String) extends Actor with ActorLogging {
   private def handle(rates: Map[String, Double]): Receive = {
     case RateRequest(currency) => rates.get(currency) match {
       case Some(rate) => sender() ! Success(rate)
-      case None => sender() ! Failure(UnsupportedCurrencyException(currency))
+      case None => sender() ! Failure(RootException(INVALID_CURRENCY, s"The currency '$currency' is not supported. Please use one of the supported currencies."))
     }
     case RatesUpdate(updatedRates) =>
       become(handle(updatedRates))
