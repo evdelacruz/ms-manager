@@ -3,13 +3,15 @@ package com.dfl.contest.exchanger.service.infrastructure
 import akka.NotUsed
 import akka.actor.ActorRef
 import akka.stream.scaladsl.{Flow, Source}
-import com.dfl.contest.exchanger.service.{UnsupportedCurrencyException, trial}
+import com.dfl.contest.exchanger.service.trial
 import com.dfl.contest.exchanger.service.infrastructure.datasource.CurrenciesSupervisor.{init => initializeSupervisor}
 import com.dfl.contest.exchanger.service.infrastructure.datasource.CurrencyExchanger.{init => initializeExchanger}
 import com.dfl.contest.exchanger.service.infrastructure.datasource.domain.Currencies._
 import com.dfl.contest.exchanger.service.infrastructure.datasource.domain.ExchangeRates.ExchangeRate
 import com.dfl.contest.exchanger.service.infrastructure.datasource.domain.Exchanges.RatesUpdate
 import com.dfl.seed.akka.base.{Name, System, Timeout, getActor, searchActor}
+import com.dfl.seed.akka.base.error._
+import com.dfl.seed.akka.base.error.ErrorCode._
 import com.dfl.seed.akka.stream.base.Types.SafeFlow
 import com.dfl.seed.akka.stream.base.Types.SafeSource.{future, single}
 
@@ -48,7 +50,7 @@ object CurrenciesOps {
     future(System.actorSelection(s"akka://$Name/user/$currency")
       .resolveOne()
       .map(Success(_))
-      .recover(_ => Failure(UnsupportedCurrencyException(currency))))
+      .recover(_ => Failure(RootException(INVALID_CURRENCY, s"The currency '$currency' is not supported. Please use one of the supported currencies."))))
   }
 
   //</editor-fold>

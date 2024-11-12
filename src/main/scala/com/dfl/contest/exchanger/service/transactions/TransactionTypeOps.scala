@@ -3,14 +3,14 @@ package com.dfl.contest.exchanger.service.transactions
 import akka.NotUsed
 import akka.stream.scaladsl.{Flow, Source}
 import com.dfl.contest.exchanger.service._
-import com.dfl.contest.exchanger.service.transactions.datasource.criteria.TransactionTypes.{DefaultCriteria, DynamicCriteria, TransactionTypeCriteria}
+import com.dfl.contest.exchanger.service.transactions.datasource.criteria.TransactionTypes._
 import com.dfl.contest.exchanger.service.transactions.datasource.domain.TransactionTypes._
 import com.dfl.contest.exchanger.service.transactions.datasource.to.TransactionTypes._
+import com.dfl.seed.akka.base.error.RootException
 import com.dfl.seed.akka.base.error.ErrorCode._
 import com.dfl.seed.akka.stream.base.Types.SafeFlow
-import com.dfl.seed.akka.stream.base.Types.SafeSource.single
+import com.dfl.seed.akka.stream.base.Types.SafeSource.{empty, single}
 import com.dfl.seed.akka.stream.mongodb.MongoOps._
-import org.mongodb.scala.bson.ObjectId
 import org.mongodb.scala.model.Filters.{and, equal, exists, ne => notEqual}
 import org.mongodb.scala.model.Sorts.ascending
 
@@ -23,37 +23,46 @@ import scala.util.{Failure, Success, Try}
 object TransactionTypeOps {
   private val Key = "service-wallet-transactiontypeops"
 
-  def add(implicit logger: String = s"$Key#add"): Flow[TransactionTypeTO, Try[TransactionType], NotUsed] = SafeFlow[TransactionTypeTO]
+  def add(implicit logger: String = s"$Key#add"): Flow[TransactionTypeCreateTO, Try[TransactionTypeTO], NotUsed] = SafeFlow[TransactionTypeCreateTO]
     .flatMapConcat(validate)
-    .flatMapConcat(trial(single(_).via(insertOne).map(Success(_)).recover(Failure(_))))
+    .flatMapConcat(trial(single(_).via(insertOne).map(getTrialTransactionTypeTO)))
 
-  def update(implicit logger: String = s"$Key#update"): Flow[(String, TransactionTypeTO), Try[TransactionTypeTO], NotUsed] = SafeFlow[(String, TransactionTypeTO)]
-    .flatMapConcat(tuple => validate(tuple._2).flatMapConcat(trial(single(tuple._1, _).map(getTransactionTypeUpdate).via(updateOne).map(_ => Success(tuple._2)))))
+  def update(implicit logger: String = s"$Key#update"): Flow[TransactionType, Try[TransactionTypeTO], NotUsed] = SafeFlow[TransactionType]
+    .flatMapConcat(tt => validate(tt).flatMapConcat(trial(single(_).map(getTransactionTypeUpdate).via(updateOne).map(_ => getTrialTransactionTypeTO(tt)))))
 
-  def remove(implicit logger: String = s"$Key#remove"): Flow[String, Boolean, NotUsed] = SafeFlow[String]
-    .map(id => equal("_id", new ObjectId(id)))
-    .via(deleteOne)
+  def remove(implicit logger: String = s"$Key#remove"): Flow[String, Boolean, NotUsed] = getIdCriteria
+    .flatMapConcat {
+      case IdCriteria(Some(id)) => single(equal("_id", id)).via(deleteOne)
+      case _ => empty
+    }
     .map(_.getDeletedCount != 0)
+    .orElse(single(true))
 
-  def load(implicit logger: String = s"$Key#find"): Flow[String, TransactionType, NotUsed]  = SafeFlow[String]
-    .flatMapConcat(id => findOne(equal("_id", new ObjectId(id))))
+  def load(implicit logger: String = s"$Key#find"): Flow[String, TransactionType, NotUsed]  = getIdCriteria
+    .flatMapConcat {
+      case IdCriteria(Some(id)) => findOne(equal("_id", id))
+      case _ => empty
+    }
 
   def loadAll(implicit logger: String = s"$Key#find-all"): Flow[TransactionTypeCriteria, TransactionType, NotUsed] = SafeFlow[TransactionTypeCriteria]
     .flatMapConcat {
-      case DynamicCriteria(_, page, size) => findMany(filter = exists("_id"), sort = ascending("createdAt"), batchSize = size, skip = page + size)
-      case DefaultCriteria(page, size) => findMany(filter = exists("_id"), sort = ascending("createdAt"), batchSize = size, skip = page + size)
+      case DynamicCriteria(_, page, size) => findMany(filter = exists("_id"), sort = ascending("createdAt"), batchSize = size, skip = page + size, limit = size)
+      case DefaultCriteria(page, size) => findMany(filter = exists("_id"), sort = ascending("createdAt"), batchSize = size, skip = page * size, limit = size)
     }
 
   //<editor-fold desc="Support Functions">
 
-  private def validate(to: TransactionTypeTO): Source[Try[TransactionType], NotUsed] = {
+  private def getIdCriteria:Flow[String, IdCriteria, NotUsed] = SafeFlow[String].map(IdCriteria(_))
+
+  private def validate(tt: TransactionType): Source[Try[TransactionType], NotUsed] = {
     implicit val logger: String = s"$Key#validate"
-    single(getTransactionType(to))
-      .flatMapConcat {
-        case entity@TransactionType(None, name, code, _, _, _) => count(equal("code", code)).map(count => if (count == 0) Success(entity) else Failure(ValidationException(DUPLICATE_TRANSACTION_TYPE, s"The transaction type's  name '$name' is invalid. Please provide a valid name.")))
-        case entity@TransactionType(Some(id), name, code, _, _, _) => count(and(notEqual("_id", id), equal("code", code))).map(count => if (count == 0) Success(entity) else Failure(ValidationException(DUPLICATE_TRANSACTION_TYPE, s"The transaction type's  name '$name' is invalid. Please provide a valid name.")))
-      }
+    tt match {
+      case entity@TransactionType(None, name, code, _, _, _) => count(equal("code", code)).map(count => if (count == 0) Success(entity) else Failure(RootException(DUPLICATE_TRANSACTION_TYPE, s"The transaction type's  name '$name' is invalid. Please provide a valid name.")))
+      case entity@TransactionType(Some(id), name, code, _, _, _) => count(and(notEqual("_id", id), equal("code", code))).map(count => if (count == 0) Success(entity) else Failure(RootException(DUPLICATE_TRANSACTION_TYPE, s"The transaction type's  name '$name' is invalid. Please provide a valid name.")))
+    }
   }
+
+  private def validate(to: TransactionTypeCreateTO): Source[Try[TransactionType], NotUsed] = validate(getTransactionType(to))
 
   //</editor-fold>
 }

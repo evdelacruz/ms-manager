@@ -1,6 +1,7 @@
 package com.dfl.contest.exchanger.service.transactions.datasource.criteria
 
 import com.dfl.contest.exchanger.Context
+import org.mongodb.scala.bson.ObjectId
 
 object TransactionTypes {
 
@@ -23,5 +24,12 @@ object TransactionTypes {
       val size = context.params.find(_._1 == "size").map(_._2.toInt).getOrElse(20)
       DefaultCriteria(page, size)
     }
+  }
+
+  case class IdCriteria(id: Option[ObjectId])
+
+  object IdCriteria {
+
+    def apply(id: String): IdCriteria = IdCriteria("[0-9a-fA-F]{24}$".r.findFirstIn(id).map(new ObjectId(_)))
   }
 }

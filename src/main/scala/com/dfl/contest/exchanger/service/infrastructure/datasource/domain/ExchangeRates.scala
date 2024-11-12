@@ -23,14 +23,14 @@ object ExchangeRates {
 
   implicit private[infrastructure] def parseCurrenciesResponse: HttpResponse => Source[Try[Seq[String]], NotUsed] = getResponse((status, body) => status match {
     case res if res.isSuccess() => Try(body.parseJson.convertTo[Seq[String]])
-    case BadRequest => Try(body.parseJson.convertTo[Seq[String]]).recoverWith(ex => Failure(UnexpectedBehaviorException(s"Error '${ex.getMessage}' when trying to parse '$body'")))
-    case _ => Failure(UnexpectedBehaviorException(s"$status => $body"))
+    case BadRequest => Try(body.parseJson.convertTo[Seq[String]]).recoverWith(ex => Failure(new RuntimeException(s"Error '${ex.getMessage}' when trying to parse '$body'")))
+    case _ => Failure(new RuntimeException(s"$status => $body"))
   })
 
   implicit private[infrastructure] def parseLatestResponse: HttpResponse => Source[Try[ExchangeRate], NotUsed] = getResponse((status, body) => status match {
     case res if res.isSuccess() => Try(body.parseJson.convertTo[ExchangeRate])
-    case BadRequest => Try(body.parseJson.convertTo[ExchangeRate]).recoverWith(ex => Failure(UnexpectedBehaviorException(s"Error '${ex.getMessage}' when trying to parse '$body'")))
-    case _ => Failure(UnexpectedBehaviorException(s"$status => $body"))
+    case BadRequest => Try(body.parseJson.convertTo[ExchangeRate]).recoverWith(ex => Failure(new RuntimeException(s"Error '${ex.getMessage}' when trying to parse '$body'")))
+    case _ => Failure(new RuntimeException(s"$status => $body"))
   })
 
   //</editor-fold>
