@@ -21,7 +21,7 @@ import scala.util.{Failure, Success, Try}
  * TODO Add support for text search
  */
 object TransactionTypeOps {
-  private val Key = "service-wallet-transactiontypeops"
+  private val Key = "service-transactions-transactiontypeops"
 
   def add(implicit logger: String = s"$Key#add"): Flow[TransactionTypeCreateTO, Try[TransactionTypeTO], NotUsed] = SafeFlow[TransactionTypeCreateTO]
     .flatMapConcat(validate)

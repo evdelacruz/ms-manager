@@ -55,7 +55,7 @@ object CacheContext {
     import com.dfl.seed.akka.base.System.dispatcher
 
     req.entity.toStrict(5.seconds).map(_.data.utf8String.parseJson match {
-      case JsObject(fields) => fields.toSeq.filter(InvolvedFields.contains(_)).sortBy(_._1).map(getPartialKey).mkString("-")
+      case JsObject(fields) => fields.toSeq.filter(tuple => InvolvedFields.contains(tuple._1)).sortBy(_._1).map(getPartialKey).mkString("-")
       case _ => "-"
     })
   }
