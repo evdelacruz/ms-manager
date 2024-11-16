@@ -10,7 +10,7 @@ import com.dfl.contest.exchanger.dist.rest.HealthcheckRoute.{Routes => Healthche
 import com.dfl.contest.exchanger.dist.rest.TransactionRoute.{Routes => TransactionRoutes}
 import com.dfl.contest.exchanger.dist.rest.TransactionTypeRoute.{Routes => TransactionTypeRoutes}
 import com.dfl.contest.exchanger.dist.schedule.CurrencyScheduler
-import com.dfl.seed.akka.base.{GlobalConfig, Name, getActor}
+import com.dfl.seed.akka.base.{GlobalConfig, Name}
 import com.dfl.seed.akka.http.Routing.{wrap => path}
 import com.dfl.seed.akka.http.startServer
 

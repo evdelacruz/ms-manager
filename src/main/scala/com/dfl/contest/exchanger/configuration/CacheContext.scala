@@ -19,7 +19,7 @@ object CacheContext {
 
   private val LfuCacheSettings = DefaultCachingSettings.lfuCacheSettings
     .withInitialCapacity(100)
-    .withMaxCapacity(5000)
+    .withMaxCapacity(1000000)
     .withTimeToLive(20.seconds)
     .withTimeToIdle(20.seconds)
 

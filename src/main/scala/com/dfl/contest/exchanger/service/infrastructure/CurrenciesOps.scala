@@ -8,7 +8,7 @@ import com.dfl.contest.exchanger.service.infrastructure.datasource.CurrenciesSup
 import com.dfl.contest.exchanger.service.infrastructure.datasource.CurrencyExchanger.{init => initializeExchanger}
 import com.dfl.contest.exchanger.service.infrastructure.datasource.domain.Currencies._
 import com.dfl.contest.exchanger.service.infrastructure.datasource.domain.ExchangeRates.ExchangeRate
-import com.dfl.contest.exchanger.service.infrastructure.datasource.domain.Exchanges.RatesUpdate
+import com.dfl.contest.exchanger.service.infrastructure.datasource.domain.Exchanges.{RateRequest, RatesUpdate}
 import com.dfl.seed.akka.base.{Name, System, Timeout, getActor, searchActor}
 import com.dfl.seed.akka.base.error._
 import com.dfl.seed.akka.base.error.ErrorCode._
@@ -37,6 +37,14 @@ object CurrenciesOps {
     single(SupportedCurrenciesRequest())
       .ask[Try[Seq[String]]](CurrenciesSupervisor)
 
+  def loadCachedRate(currencyFrom: String, currencyTo: String)(implicit logger: String = s"$Key#load-cached-rates"): Source[Try[Double], NotUsed] = {
+    loadExchanger(currencyFrom)
+      .flatMapConcat {
+        case Some(exchanger) => single(RateRequest(currencyTo)).ask[Try[Double]](exchanger)
+        case None => single(Failure(RootException(INVALID_CURRENCY, s"The currency '$currencyFrom' is not supported. Please use one of the supported currencies.")))
+      }
+  }
+
   //<editor-fold desc="Support Functions">
 
   private def loadOrCreateExchanger(currency: String)(implicit logger: String = s"$Key#load-or-create-exchanger"): Source[Try[ActorRef], NotUsed] =
@@ -44,13 +52,13 @@ object CurrenciesOps {
       .map(Success(_))
       .recover(Failure(_))
 
-  private def loadExchanger(currency: String)(implicit logger: String = s"$Key#load-exchanger"): Source[Try[ActorRef], NotUsed] = {
+  private def loadExchanger(currency: String)(implicit logger: String = s"$Key#load-exchanger"): Source[Option[ActorRef], NotUsed] = {
     implicit val dispatcher: ExecutionContextExecutor = System.dispatcher
 
     future(System.actorSelection(s"akka://$Name/user/$currency")
       .resolveOne()
-      .map(Success(_))
-      .recover(_ => Failure(RootException(INVALID_CURRENCY, s"The currency '$currency' is not supported. Please use one of the supported currencies."))))
+      .map(Some(_))
+      .recover(_ => None))
   }
 
   //</editor-fold>
