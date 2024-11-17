@@ -15,7 +15,7 @@ import scala.concurrent.Future
 import scala.util.Failure
 
 object TransactionTypeFacade {
-  private val Key = "facade-currenciesfacade"
+  private val Key = "facade-transactiontypefacade"
 
   def add(to: TransactionTypeCreateTO)(implicit logger: String = s"$Key#add"): Future[Result[TransactionTypeTO]] = performTry {
     single(to)
