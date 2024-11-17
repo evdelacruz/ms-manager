@@ -1,21 +1,23 @@
 package com.dfl.contest.exchanger.facade
 
 import akka.NotUsed
-import akka.stream.scaladsl.Source
+import akka.stream.scaladsl.{Flow, Source}
 import com.dfl.contest.exchanger.Context
 import com.dfl.contest.exchanger.service.infrastructure.CurrenciesOps.loadCachedRate
-import com.dfl.contest.exchanger.service.transactions.TransactionOps.{loadAll, lookup, add => save}
+import com.dfl.contest.exchanger.service.transactions.TransactionOps.{loadAll, lookup, add => save, setLastCode}
 import com.dfl.contest.exchanger.service.transactions.TransactionTypeOps.{load => loadTransactionType}
 import com.dfl.contest.exchanger.service.transactions.datasource.domain.Transactions.TransactionType
 import com.dfl.contest.exchanger.service.transactions.datasource.criteria.Transactions.DefaultCriteria
 import com.dfl.contest.exchanger.service.transactions.datasource.to.Transactions._
 import com.dfl.contest.exchanger.service.trial
-import com.dfl.seed.akka.base.error.ErrorCode.INVALID_TRANSACTION_TYPE
+import com.dfl.seed.akka.base.error.ErrorCode.{INVALID_CURRENCY, INVALID_TRANSACTION_TYPE}
 import com.dfl.seed.akka.base.error.RootException
+import com.dfl.seed.akka.stream.base.Types.SafeFlow
 import com.dfl.seed.akka.stream.base.Types.SafeSource.single
 import com.dfl.seed.akka.stream.base.facade.{PagedList, Result, perform, performTry}
 import spray.json.JsValue
 
+import java.time.Instant
 import java.time.Instant.now
 import scala.concurrent.Future
 import scala.util.{Failure, Success, Try}
@@ -26,6 +28,11 @@ object TransactionFacade {
   def convert(req: ConversionRequestTO)(implicit context: Context, logger: String = s"$Key#add"): Future[Result[TransactionTO]] = performTry {
     loadCachedRate(req.fromCurrency, req.toCurrency)
       .flatMapConcat(trial(rate => getTransactionType(req.transactionType).flatMapConcat(trial(`type` => single((req, `type`, now, rate, context.authentication.userId)).via(save)))))
+  }
+
+  def refreshCode: Flow[Instant, Boolean, NotUsed] = {
+    SafeFlow[Instant]
+      .via(setLastCode)
   }
 
   def search(implicit context: Context, logger: String = s"$Key#search"): Future[Result[PagedList[TransactionTO]]] = perform {

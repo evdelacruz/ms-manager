@@ -37,13 +37,8 @@ object CurrenciesOps {
     single(SupportedCurrenciesRequest())
       .ask[Try[Seq[String]]](CurrenciesSupervisor)
 
-  def loadCachedRate(currencyFrom: String, currencyTo: String)(implicit logger: String = s"$Key#load-cached-rates"): Source[Try[Double], NotUsed] = {
-    loadExchanger(currencyFrom)
-      .flatMapConcat {
-        case Some(exchanger) => single(RateRequest(currencyTo)).ask[Try[Double]](exchanger)
-        case None => single(Failure(RootException(INVALID_CURRENCY, s"The currency '$currencyFrom' is not supported. Please use one of the supported currencies.")))
-      }
-  }
+  def loadCachedRate(currencyFrom: String, currencyTo: String)(implicit logger: String = s"$Key#load-cached-rates"): Source[Try[Double], NotUsed] =
+    if (currencyFrom == currencyTo) single(Success(1)) else loadRate(currencyFrom, currencyTo)
 
   //<editor-fold desc="Support Functions">
 
@@ -59,6 +54,14 @@ object CurrenciesOps {
       .resolveOne()
       .map(Some(_))
       .recover(_ => None))
+  }
+
+  private def loadRate(currencyFrom: String, currencyTo: String)(implicit logger: String = s"$Key#load-rate"): Source[Try[Double], NotUsed] = {
+    loadExchanger(currencyFrom)
+      .flatMapConcat {
+        case Some(exchanger) => single(RateRequest(currencyTo)).ask[Try[Double]](exchanger)
+        case None => single(Failure(RootException(INVALID_CURRENCY, s"The currency '$currencyFrom' is not supported. Please use one of the supported currencies.")))
+      }
   }
 
   //</editor-fold>

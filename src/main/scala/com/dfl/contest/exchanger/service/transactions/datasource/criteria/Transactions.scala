@@ -3,7 +3,7 @@ package com.dfl.contest.exchanger.service.transactions.datasource.criteria
 import com.dfl.contest.exchanger.Context
 import org.mongodb.scala.bson.ObjectId
 import org.mongodb.scala.bson.conversions.Bson
-import org.mongodb.scala.model.Filters.{and, gte}
+import org.mongodb.scala.model.Filters.{and, equal, gte, lte}
 
 import java.time.Instant
 import scala.util.Try
@@ -15,7 +15,7 @@ object Transactions {
   case class DefaultCriteria(startDate: Option[Instant], endDate: Option[Instant], transactionType: Option[ObjectId], page: Int, size: Int) extends TransactionCriteria {
 
     def getFilters: Bson = {
-      val filters = startDate.map(gte("createdAt", _)) ++ endDate.map(gte("createdAt", _)) ++ startDate.map(gte("createdAt", _))
+      val filters = startDate.map(gte("createdAt", _)) ++ endDate.map(lte("createdAt", _)) ++ transactionType.map(equal("transactionType.id", _))
       if (1 == filters.size) filters.head else and(filters.toSeq: _*)
     }
   }
