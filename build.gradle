@@ -11,7 +11,6 @@ repositories {
     maven {
         url 'https://nexus.dofleinisoftware.com/repository/maven-public/'
     }
-    mavenLocal()
 }
 
 def versions = [

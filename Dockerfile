@@ -25,5 +25,5 @@ COPY --from=builder /opt/service/build/libs/*.jar /opt/java-ms/ms-exchanger.jar
 EXPOSE 8080
 
 #TODO for compitalions change name of jar
-CMD java ${JAVA_OPTS} -server -XX:+UseParallelGC -XX:+UseNUMA -Xmx0.5g -Djava.security.egd=file:/dev/./urandom -jar /opt/java-ms/ms-exchanger.jar
+CMD java ${JAVA_OPTS} -server -XX:+UseParallelGC -XX:+UseNUMA -Djava.security.egd=file:/dev/./urandom -jar /opt/java-ms/ms-exchanger.jar
 
