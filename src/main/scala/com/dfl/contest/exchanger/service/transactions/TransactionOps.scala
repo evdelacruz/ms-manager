@@ -1,8 +1,10 @@
 package com.dfl.contest.exchanger.service.transactions
 
 import akka.NotUsed
+import akka.stream.alpakka.mongodb.DocumentUpdate
 import akka.stream.scaladsl.{Flow, Source}
 import com.dfl.contest.exchanger.service.transactions.datasource.TransactionCoder.{init => initializeCoder}
+import com.dfl.contest.exchanger.service.transactions.datasource.criteria.TransactionTypes.IdCriteria
 import com.dfl.contest.exchanger.service.transactions.datasource.criteria.Transactions._
 import com.dfl.contest.exchanger.service.transactions.datasource.domain.TransactionCodeCommands.{CodeRequest, UpdateSuffix}
 import com.dfl.contest.exchanger.service.transactions.datasource.domain.Transactions.{Pipeline => getSummary, getSummary => getDinamicSummary, _}
@@ -10,10 +12,12 @@ import com.dfl.contest.exchanger.service.transactions.datasource.to.Transactions
 import com.dfl.seed.akka.base.{Timeout, getActor}
 import com.dfl.seed.akka.stream.base.Types.SafeFlow
 import com.dfl.seed.akka.stream.base.Types.SafeSource.{empty, single}
-import com.dfl.seed.akka.stream.mongodb.MongoOps.{aggregate, findMany, findOne, insertOne}
+import com.dfl.seed.akka.stream.mongodb.MongoOps.{aggregate, count, findMany, findOne, insertOne, updateMany}
 import com.dfl.seed.akka.stream.mongodb.bson.getDefaultSerializationSettings
-import org.mongodb.scala.model.Filters.exists
+import org.mongodb.scala.bson.ObjectId
+import org.mongodb.scala.model.Filters.{equal, exists}
 import org.mongodb.scala.model.Sorts.{ascending, descending}
+import org.mongodb.scala.model.Updates.set
 import spray.json._
 
 import java.time.Instant
@@ -34,6 +38,9 @@ object TransactionOps {
     .flatMapConcat(_ => findOne(filter = exists("_id"), sort = descending("createdAt")).map(transaction => UpdateSuffix(transaction.transactionCode)))
     .ask[Boolean](Coder)
 
+  def updateTypeName(_id: ObjectId, name: String)(implicit logger: String = s"$Key#update-type-name"): Source[Long, NotUsed] =
+    single(DocumentUpdate(equal("transactionType.id", _id), set("transactionType.name", name))).via(updateMany).map(_.getModifiedCount)
+
   def loadAll(implicit logger: String = s"$Key#find-all"): Flow[TransactionCriteria, TransactionTO, NotUsed] = SafeFlow[TransactionCriteria]
     .flatMapConcat {
       case DefaultCriteria(None, None, None, page, size) => findMany(filter = exists("_id"), sort = ascending("createdAt"), batchSize = size, skip = page * size, limit = size)
@@ -50,6 +57,11 @@ object TransactionOps {
     }
     source
       .map(_.toJson(getDefaultSerializationSettings).parseJson)
+  }
+
+  def countByType(id: String)(implicit logger: String = s"$Key#count-by-type"): Source[Long, NotUsed] = IdCriteria(id) match {
+    case IdCriteria(Some(id)) => count(equal("transactionType.id", id))
+    case _ => single(0L)
   }
 
   //<editor-fold desc="Support Functions">
