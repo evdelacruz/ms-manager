@@ -49,7 +49,12 @@ object CacheContext {
     Directive { inner => ctx =>
       import ctx.executionContext
       keyer.lift(ctx) match {
-        case Some(future) => future.flatMap(key => cache.get(key).map(_ => successful(DefaultErrorResponse)).getOrElse(cache.apply(key, () => inner(())(ctx))))
+//        case Some(future) => future.flatMap(key => cache.get(key).map(_ => successful(DefaultErrorResponse)).getOrElse(cache.apply(key, () => inner(())(ctx))))
+        case Some(future) =>
+          future.flatMap(key => cache.get(key).getOrElse({
+            cache.apply(key, () => successful(DefaultErrorResponse))
+            inner(())(ctx)
+          }))
         case None         => inner(())(ctx)
       }
     }
@@ -58,7 +63,8 @@ object CacheContext {
     import com.dfl.seed.akka.base.System.dispatcher
 
     req.entity.toStrict(5.seconds).map(_.data.utf8String.parseJson match {
-      case JsObject(fields) => fields.toSeq.filter(tuple => InvolvedFields.contains(tuple._1)).sortBy(_._1).map(getPartialKey).mkString
+      case JsObject(fields) =>
+        fields.toSeq.filter(tuple => InvolvedFields.contains(tuple._1)).sortBy(_._1).map(getPartialKey).mkString
       case _ => "-"
     })
   }
