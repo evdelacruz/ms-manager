@@ -3,15 +3,16 @@ package com.dfl.contest.exchanger.configuration
 import akka.http.caching.LfuCache
 import akka.http.caching.scaladsl.{Cache, CachingSettings}
 import akka.http.scaladsl.model.ContentTypes.`application/json`
-import akka.http.scaladsl.model.StatusCodes.BadRequest
-import akka.http.scaladsl.server.{Directive, Directive0, RequestContext, Route, RouteResult}
-import akka.http.scaladsl.model.{HttpEntity, HttpRequest, HttpResponse}
 import akka.http.scaladsl.model.HttpProtocols.`HTTP/1.1`
+import akka.http.scaladsl.model.StatusCodes.BadRequest
+import akka.http.scaladsl.model.{HttpEntity, HttpRequest, HttpResponse, Uri}
 import akka.http.scaladsl.server.RouteResult.Complete
+import akka.http.scaladsl.server._
 import com.dfl.seed.akka.base.System
 import spray.json._
 
 import scala.concurrent.Future
+import scala.concurrent.Future.successful
 import scala.concurrent.duration._
 
 object CacheContext {
@@ -29,11 +30,13 @@ object CacheContext {
     case ctx: RequestContext => getKey(ctx.request)
   }
 
-  private val DefaultErrorResponse = HttpResponse(
-    status = BadRequest,
-    headers = Seq(),
-    entity = HttpEntity(`application/json`, "{\"code\": \"DUPLICATE_TRANSACTION\", \"message\": \"A similar transaction was already processed within the last 20 seconds. Please try again later.\"}"),
-    protocol = `HTTP/1.1`
+  private val DefaultErrorResponse = Complete(
+    HttpResponse(
+      status = BadRequest,
+      headers = Seq(),
+      entity = HttpEntity(`application/json`, "{\"code\": \"DUPLICATE_TRANSACTION\", \"message\": \"A similar transaction was already processed within the last 20 seconds. Please try again later.\"}"),
+      protocol = `HTTP/1.1`
+    )
   )
 
   private val InvolvedFields = "amount-fromCurrency-toCurrency-transactionType"
@@ -46,7 +49,7 @@ object CacheContext {
     Directive { inner => ctx =>
       import ctx.executionContext
       keyer.lift(ctx) match {
-        case Some(future) => future.flatMap(key => cache.get(key).map(_ => Future(Complete(DefaultErrorResponse))).getOrElse(cache.apply(key, () => inner(())(ctx))))
+        case Some(future) => future.flatMap(key => cache.get(key).map(_ => successful(DefaultErrorResponse)).getOrElse(cache.apply(key, () => inner(())(ctx))))
         case None         => inner(())(ctx)
       }
     }
@@ -55,7 +58,7 @@ object CacheContext {
     import com.dfl.seed.akka.base.System.dispatcher
 
     req.entity.toStrict(5.seconds).map(_.data.utf8String.parseJson match {
-      case JsObject(fields) => fields.toSeq.filter(tuple => InvolvedFields.contains(tuple._1)).sortBy(_._1).map(getPartialKey).mkString("-")
+      case JsObject(fields) => fields.toSeq.filter(tuple => InvolvedFields.contains(tuple._1)).sortBy(_._1).map(getPartialKey).mkString
       case _ => "-"
     })
   }
