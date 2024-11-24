@@ -1,0 +1,20 @@
+services:
+  ms-managuer:
+    build: .
+    environment:
+      APP_ENVIRONMENT: "dev"
+      APP_JWT_SECRET: "secret"
+      APP_LOGGING_LEVEL: "INFO"
+      APP_PORT: 8080
+      APP_DATASOURCE_MONGODB_URL: "mongodb://root:example@mongo:27017/"
+    depends_on:
+      mongo:
+        condition: service_started
+    ports:
+     - "8080:8080"
+  mongo:
+    image: mongo
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example

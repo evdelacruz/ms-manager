@@ -20,7 +20,7 @@ object Transactions {
   //<editor-fold desc="Functions">
 
   def getTransaction(transaction: Transaction): TransactionTO = TransactionTO(
-    transactionId = transaction._id.map(_.toHexString).getOrElse("-"),
+    transactionId = transaction._id.map(_.toHexString).orNull,
     transactionCode = transaction.transactionCode,
     fromCurrency = transaction.fromCurrency,
     toCurrency = transaction.toCurrency,

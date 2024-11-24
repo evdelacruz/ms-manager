@@ -11,7 +11,6 @@ repositories {
     maven {
         url 'https://nexus.dofleinisoftware.com/repository/maven-public/'
     }
-    mavenLocal()
 }
 
 def versions = [
@@ -29,7 +28,7 @@ jar {
     manifest {
         attributes 'Implementation-Vendor'  : 'evdelacruz',
                    'Implementation-Unit'    : 'dofleini',
-                   'Implementation-Version' : '0.1.0',
+                   'Implementation-Version' : '0.2.0',
                    'Implementation-Title'   : 'ms-exchanger',
                    'Specification-Vendor'   : 'DFL Contest 2024',
                    'Specification-Title'    : 'Transactions Manager',
