@@ -4,13 +4,13 @@ import akka.NotUsed
 import akka.stream.scaladsl.{Flow, Source}
 import com.dfl.contest.exchanger.Context
 import com.dfl.contest.exchanger.service.infrastructure.CurrenciesOps.loadCachedRate
-import com.dfl.contest.exchanger.service.transactions.TransactionOps.{loadAll, lookup, add => save, setLastCode}
+import com.dfl.contest.exchanger.service.transactions.TransactionOps.{loadAll, lookup, setLastCode, add => save}
 import com.dfl.contest.exchanger.service.transactions.TransactionTypeOps.{load => loadTransactionType}
-import com.dfl.contest.exchanger.service.transactions.datasource.domain.Transactions.TransactionType
 import com.dfl.contest.exchanger.service.transactions.datasource.criteria.Transactions.DefaultCriteria
+import com.dfl.contest.exchanger.service.transactions.datasource.domain.Transactions.TransactionType
 import com.dfl.contest.exchanger.service.transactions.datasource.to.Transactions._
 import com.dfl.contest.exchanger.service.trial
-import com.dfl.seed.akka.base.error.ErrorCode.{INVALID_CURRENCY, INVALID_TRANSACTION_TYPE}
+import com.dfl.seed.akka.base.error.ErrorCode.INVALID_TRANSACTION_TYPE
 import com.dfl.seed.akka.base.error.RootException
 import com.dfl.seed.akka.stream.base.Types.SafeFlow
 import com.dfl.seed.akka.stream.base.Types.SafeSource.single
@@ -48,11 +48,12 @@ object TransactionFacade {
       .map(Result(_))
   }
 
+  //<editor-fold desc="Support Functions">
+
   private def getTransactionType(id: String): Source[Try[TransactionType], NotUsed] = single(id)
     .via(loadTransactionType)
-    .map(`type` => `type`._id match {
-      case Some(id) => Success(TransactionType(id, `type`.name))
-      case None => Failure(RootException(INVALID_TRANSACTION_TYPE, s"The transaction type ID '$id' is invalid. Please provide a valid transaction type."))
-    })
+    .map(`type` => Success(TransactionType(`type`._id.orNull, `type`.name)))
     .orElse(single(Failure(RootException(INVALID_TRANSACTION_TYPE, s"The transaction type ID '$id' is invalid. Please provide a valid transaction type."))))
+
+  //</editor-fold>
 }
