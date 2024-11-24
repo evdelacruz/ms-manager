@@ -28,7 +28,7 @@
 
 | Variable                   | Format                                                                          | Description                                  |
 |:---------------------------|:--------------------------------------------------------------------------------|:---------------------------------------------|
-| APP_DATASOURCE_MONGODB_URL | [MongoDB URI](https://www.mongodb.com/docs/manual/reference/connection-string/) | Databa uri connection string                 |
+| APP_DATASOURCE_MONGODB_URL | [MongoDB URI](https://www.mongodb.com/docs/manual/reference/connection-string/) | Database uri connection string               |
 | APP_ENVIRONMENT            | String                                                                          | Environment name to use with the healthcheck |
 | APP_JWT_SECRET             | String                                                                          | Secret to use in the tokens checking step    |
 | APP_LOGGING_LEVEL          | INFO or DEBUG                                                                   | Application logging level                    |
@@ -39,6 +39,8 @@
 |:------------------|:------------|:----------|
 | Microservice      | 256MB (1GB) | 0.5 (1.0) |
 | Database          | 1GB   (2GB) | 1.0 (2.0) |
+
+Note: Since I decided to use an in-memory cache implementation (details explained below), the more RAM the service gets, the better.
 
 ### Database scripts ###
 
@@ -119,20 +121,36 @@ The service tries to set an internal set up at startup. In order to check if eve
 
 ## 📚 Documentation
 
-### Getting Started
-...
-
 ### Main challenges
-IMHO there were four main challenges to take into account in order to provide a suitable solution for this contest:
-- **Duplication detection**: Currency conversions should be rejected within 20s in they are duplicated. Key fact: Fast responses for non valid requests.
+There were three main challenges to take into account in order to provide a suitable solution for this contest:
+- **Duplication detection**: Currency conversions should be rejected within 20s in they are duplicated. Key fact: Fast responses for -temporally- duplicated requests while avoiding expensive mutual exclusion techniques in order to achieve this requirement.
 - **Code assigning**: Each code assigned for completed transactions should be unique based on an incremental suffix. Key fact: Concurrency access to shared resources.
-- **Input validation**: Ensuring the implementation is secure and compliant with -functional or not- requirements. Key fact: Security and domain definition affects all the application transversaly
-- **Data consistency**: Domain should be modeled in a way it meet not only the business rules but also specific conditions . Key fact:
+- **Input validation & Data consistency**: Domain should be modeled in a way it meets not only the business rules but also specific conditions. Key fact: Ensuring the implementation is secure and compliant with -functional or not- requirements by taking into account that domain entities and its aggregations are fundamental for core features.
 
-among other features maybe not as critical as the mentioned ones in terms of implementation but necessary at best.
-
-### Project structure
-...
+among other features maybe not as critical as these mentioned ones in terms of implementation but necessary as well.
 
 ### Tech stack selection
-...
+Selecting the right technology stack is a critical step in the success of any software project. It directly impacts the system's scalability, performance, maintainability, and the development team's efficiency. For this project, the chosen stack leverages Akka, Scala, and Caffeine. Each of these technologies has been carefully selected for its unique capabilities, compatibility, and alignment with the project's requirements.
+
+1. **Akka**: It is a powerful toolkit for building highly concurrent, distributed, and fault-tolerant systems. Its actor-based model enables developers to handle complex, stateful workflows with ease while abstracting the complexities of multithreading and asynchronous programming. Two of the contest challenges are closely related to these characteristics and I leveraged in Akka the resolution of them.
+   - Duplication detection: In combination with **Caffeine** I put cache-first (with 20 seconds of TTL per entry) handler at the top of the *conversion* operation in order to let pass or reject requests by calculating the proper key (combination of amount, currencies and transaction type) for each of them. It is important to highlight that an optimistic guarding strategy was selected to achieve this requirement. This approach tries to minimize problem where many requests to a particular cache key arrive before the first one could be set. I think the opposite (special locking guarding techniques) can lead to a poor performance by having a bottle neck in this step. If repeated requests are not too frequently (and by frequent I mean a bunch of then concurrently) the selected approach fits perfectly the business rule. It only fails (by a very small number of errors) when high loads come concurrently. At the end, to switch from one approach to another is a matter of knowing what the most likely behavior is, and that information were not provided.
+   - Code assigning: This operation has the particularity of calculates codes by incrementing a number that acts as a suffix. In order to solve this *concurrent-access resource* problem I implemented an actor to encapsulate state and behavior while guaranteeing that interaction occurs exclusively through asynchronous message-passing. This approach is simple, concise, less error-prone and bulletproof.
+2. **Scala**: Everything in Scala is an expression so modeling data and domain-specific logic with ADTs (**A**lgebraic **D**ata **T**ypes) align well with functional programming paradigms, such as monads, functors, and folds, enabling higher-order abstractions. This provides a robust way to model data and logic with type safety, clarity, and maintainability by reducing runtime errors and making code more expressive.
+3. **MongoDB**: Even when databases are details within an architecture, every selection has its own reasons. MongoDb was chosen because it comes with a robust aggregation framework that supports complex transformations directly on the database server without pulling data into application code. Meeting the stats requirement was easy peasy without having to use complex queries without losing the rest of the advantages this kind of tools offer.
+
+### Project structure
+A multilayered architecture was selected in order to organize the internal project components (functions, domain entities, etc). The structure and responsibilities is described as follows:
+
+- **Distribution layer**: Is the presentation layer of the application. Interacts with the outside in this case by exposing REST based routers that receive external requests and provides the proper responses to the callers. The main idea behind it is to create a boundary between the application logic and external systems.
+- **Orchestration layer**: A requirement can be often described as a combination of several use cases that may produce a success or failed result depending on the input and the state of the application. This is the area that coordinates and executes the business logic defined in the Domain Layer to fulfill specific use cases or workflows.
+- **Domain layer**: Encapsulates the core business rules and logic of the application by having as a cornerstone the domain definition (modeling and operations).
+
+The goal behind this definition is to have a loosely coupling structure where each component has it responsibility under the organization. This abstraction reduces the complexity of adding incoming features and prepares the architecture to minimize the impact of future evolving changes (maybe to a well-defined Hexagonal architecture) if needed.
+
+### Improvements opportunities
+There are a couple of areas (among other ones) where with simple changes I can improve the application performance and behavior.
+
+- Cache for searches and stats operations: A cache can be added to improve the responses in transactions searches and stats retrieval operations. There are two things to take into account:
+  - Name modifications over transactions types should evict the cache entries since the responses of the mentioned operations includes this field.
+  - Date based filters impacts on the cache strategy, especially the `endDate` field. Only past values should be cached since future ones may exclude possible incoming conversions.
+- Horizontal scaling: In case of horizontal scaling needs the cache implementation can be leveraged to an external tool like Redis and code assigning strategy extended by adding the Akka Persistence module. All of these changes without touching any key part of the source code.
