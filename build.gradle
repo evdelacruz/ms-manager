@@ -28,7 +28,7 @@ jar {
     manifest {
         attributes 'Implementation-Vendor'  : 'evdelacruz',
                    'Implementation-Unit'    : 'dofleini',
-                   'Implementation-Version' : '0.2.0-SNAPSHOT',
+                   'Implementation-Version' : '0.2.0',
                    'Implementation-Title'   : 'ms-exchanger',
                    'Specification-Vendor'   : 'DFL Contest 2024',
                    'Specification-Title'    : 'Transactions Manager',
