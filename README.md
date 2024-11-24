@@ -6,8 +6,8 @@
 [![OS](https://img.shields.io/badge/OS-linux%2C%20windows%2C%20macOS-0078D4)](https://docs.abblix.com/docs/technical-requirements)
 [![CPU](https://img.shields.io/badge/CPU-x86%2C%20x64%2C%20ARM%2C%20ARM64-FF8C00)](https://docs.abblix.com/docs/technical-requirements)
 
-[![Latest Version](https://img.shields.io/badge/Development_Version-0.2.0--SNAPSHOT-blue.svg)](https://github.com/evdelacruz/ms-manager/blob/dev/build.gradle)
-[![Latest Stable Version](https://img.shields.io/badge/Latest_Stable_Version-0.1.0-bluegreen.svg)](https://github.com/evdelacruz/ms-manager/blob/master/build.gradle)
+[![Latest Version](https://img.shields.io/badge/Development_Version-0.3.0--SNAPSHOT-blue.svg)](https://github.com/evdelacruz/ms-manager/blob/dev/build.gradle)
+[![Latest Stable Version](https://img.shields.io/badge/Latest_Stable_Version-0.2.1-bluegreen.svg)](https://github.com/evdelacruz/ms-manager/blob/master/build.gradle)
 
 ⭐ Share your thoughts on social media!
 

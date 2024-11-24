@@ -1,5 +1,5 @@
 services:
-  ms-managuer:
+  ms-manager:
     build: .
     environment:
       APP_ENVIRONMENT: "dev"
