@@ -12,7 +12,7 @@ object HealthStatuses {
     val ERROR = Value("ERROR")
   }
 
-  case class HealthStatus(`type`: Type.Type, services: Option[Map[String, Type.Type]], datasource: Option[Map[String, Type.Type]], info: Map[String, String])
+  case class HealthStatus(status: Type.Type, services: Option[Map[String, Type.Type]], datasource: Option[Map[String, Type.Type]], info: Map[String, String])
 
   //<editor-fold desc="SerDes">
 
