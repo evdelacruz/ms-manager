@@ -5,7 +5,7 @@ import akka.http.caching.scaladsl.{Cache, CachingSettings}
 import akka.http.scaladsl.model.ContentTypes.`application/json`
 import akka.http.scaladsl.model.HttpProtocols.`HTTP/1.1`
 import akka.http.scaladsl.model.StatusCodes.BadRequest
-import akka.http.scaladsl.model.{HttpEntity, HttpRequest, HttpResponse, Uri}
+import akka.http.scaladsl.model.{HttpEntity, HttpRequest, HttpResponse}
 import akka.http.scaladsl.server.RouteResult.Complete
 import akka.http.scaladsl.server._
 import com.dfl.seed.akka.base.System
@@ -24,7 +24,7 @@ object CacheContext {
     .withTimeToLive(20.seconds)
     .withTimeToIdle(20.seconds)
 
-  private val SystemCache: Cache[String, RouteResult] = LfuCache(DefaultCachingSettings.withLfuCacheSettings(LfuCacheSettings))
+  private val SystemCache: Cache[String, String] = LfuCache(DefaultCachingSettings.withLfuCacheSettings(LfuCacheSettings))
 
   private val Keyer: PartialFunction[RequestContext, Future[String]] = {
     case ctx: RequestContext => getKey(ctx.request)
@@ -39,22 +39,20 @@ object CacheContext {
     )
   )
 
-  private val InvolvedFields = "amount-fromCurrency-toCurrency-transactionType"
+  private val KeyFormat = "amount-fromCurrency-toCurrency-transactionType"
 
   //<editor-fold desc="Functions">
 
   def cacheable(route: => Route): Route = customCache(SystemCache, Keyer)(route)
 
-  private def customCache[K](cache: Cache[K, RouteResult], keyer: PartialFunction[RequestContext, Future[K]]): Directive0 =
+  private def customCache[K](cache: Cache[K, String], keyerFunction: PartialFunction[RequestContext, Future[K]]): Directive0 =
     Directive { inner => ctx =>
       import ctx.executionContext
-      keyer.lift(ctx) match {
-//        case Some(future) => future.flatMap(key => cache.get(key).map(_ => successful(DefaultErrorResponse)).getOrElse(cache.apply(key, () => inner(())(ctx))))
-        case Some(future) =>
-          future.flatMap(key => cache.get(key).getOrElse({
-            cache.apply(key, () => successful(DefaultErrorResponse))
-            inner(())(ctx)
-          }))
+      keyerFunction.lift(ctx) match {
+        case Some(future) => future.flatMap(key => cache.get(key).map(_ => successful(DefaultErrorResponse)).getOrElse({
+          cache.apply(key, () => successful(KeyFormat))
+          inner(())(ctx)
+        }))
         case None         => inner(())(ctx)
       }
     }
@@ -62,9 +60,9 @@ object CacheContext {
   private def getKey(req: HttpRequest): Future[String] = {
     import com.dfl.seed.akka.base.System.dispatcher
 
-    req.entity.toStrict(5.seconds).map(_.data.utf8String.parseJson match {
+    req.entity.toStrict(10.seconds).map(_.data.utf8String.parseJson match {
       case JsObject(fields) =>
-        fields.toSeq.filter(tuple => InvolvedFields.contains(tuple._1)).sortBy(_._1).map(getPartialKey).mkString
+        fields.toSeq.filter(tuple => KeyFormat.contains(tuple._1)).sortBy(_._1).map(getPartialKey).mkString
       case _ => "-"
     })
   }
